@@ -1,0 +1,27 @@
+{
+  "name": "unb-libraries/dockworker-admin",
+  "description": "Provides administrative functions related to applications deployed in the dockworker framework.",
+  "type": "library",
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "unb-libraries/dockworker": "6.x-dev"
+  },
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "UNB Libraries",
+      "email": "libsupport@unb.ca"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Dockworker\\": "./src/"
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "php-http/discovery": true
+    }
+  }
+}

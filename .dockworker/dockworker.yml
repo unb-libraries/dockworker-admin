@@ -1,0 +1,13 @@
+dockworker:
+  version: '6'
+  application:
+    identifiers:
+      id: dockworker-admin
+      slug: dockworker-admin
+      short_slug: admin
+      uuid: 9999
+    workflows:
+      vcs:
+        type: github
+        owner: unb-libraries
+        name: hit.lib.unb.ca
