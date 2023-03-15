@@ -7,15 +7,20 @@ use Dockworker\GitHub\GitHubMultipleRepositoryTrait;
 use Dockworker\IO\DockworkerIO;
 use Dockworker\IO\DockworkerIOTrait;
 use Dockworker\StackExchange\StackExchangeTeamClientTrait;
+use Dockworker\Markdown\MarkdownRenderTrait;
+use Dockworker\Twig\TwigTrait;
+
 
 /**
  * Provides methods to write GitHub repo inventory pages to Stack Overflow.
  */
 class DockworkerInventoryPageCommands extends DockworkerAdminCommands
 {
-    use StackExchangeTeamClientTrait;
-    use GitHubMultipleRepositoryTrait;
     use DockworkerIOTrait;
+    use GitHubMultipleRepositoryTrait;
+    use MarkdownRenderTrait;
+    use StackExchangeTeamClientTrait;
+    use TwigTrait;
 
     /**
      * Updates the Dockworker site inventory article.
@@ -79,7 +84,62 @@ class DockworkerInventoryPageCommands extends DockworkerAdminCommands
             $operation_description,
             $no_confirm
         );
+        $topic_repos = [];
+        foreach ($this->githubRepositories as $repository) {
+          foreach ($repository['topics'] as $topic) {
+            if (!isset($topic_repos[$topic])) {
+              $topic_repos[$topic] = [];
+            }
+            $topic_repos[$topic][] = $repository;
+          }
+        }
+      $markdown = $this->generateTopicSiteInventoryPage(
+        'Dockworker',
+        'This is a list of all the Dockworker repositories, grouped by tag.',
+        $topic_repos
+      );
+        print_r($markdown);
     }
+
+  protected function generateTopicSiteInventoryPage(
+    string $title,
+    string $description,
+    array $repositories
+  ) {
+    $markdown = $this->renderTwig(
+      'inventory-page.md.twig',
+      [__DIR__ . '/../../../../data/twig/inventory'],
+      [
+        'title' => $title,
+        'description' => $description,
+        'site_list' => $this->generateSiteList($repositories),
+      ]
+    );
+    return $markdown;
+  }
+
+  protected function generateSiteList(
+    array $repositories
+  ) {
+     $markdown = '';
+     foreach ($repositories as $repository_tag => $repositories) {
+       $markdown .= "## $repository_tag\n";
+       $markdown .= $this->renderMarkdownList(
+         $repositories
+       );
+       $markdown .= "\n";
+    };
+    return $markdown;
+  }
+
+  protected function renderMarkdownList($repositories) {
+    $markdown = "\n";
+    foreach ($repositories as $repository) {
+      $markdown .= "* [{$repository['name']}]({$repository['html_url']}): {$repository['description']}\n";
+    }
+    $markdown .= "\n";
+    return $markdown;
+  }
 
     /**
      * Initializes the inventory page commands.
@@ -91,4 +151,38 @@ class DockworkerInventoryPageCommands extends DockworkerAdminCommands
             'dockworker-admin'
         );
     }
+
+    protected static function getRepositoryTableHeaders(): array {
+        return [
+            'ID',
+            'Name',
+            'Description',
+            'URL',
+            'Last Updated',
+            'Last Pushed',
+        ];
+    }
+
+    protected static function getRepositoryTableRows(array $repositories): array {
+        $rows = [];
+        $row_id = 1;
+        foreach ($repositories as $repository) {
+            $row = self::getRepositoryTableRow($repository);
+            array_unshift($row, $row_id);
+            $rows[] = $row;
+            $row_id++;
+        }
+        return $rows;
+    }
+
+    protected static function getRepositoryTableRow(array $repository): array {
+      return [
+        $repository['name'],
+        $repository['description'],
+        $repository['html_url'],
+        $repository['updated_at'],
+        $repository['pushed_at'],
+      ];
+    }
+
 }
