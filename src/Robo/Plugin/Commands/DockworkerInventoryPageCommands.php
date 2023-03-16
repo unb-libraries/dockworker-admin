@@ -6,10 +6,9 @@ use Dockworker\DockworkerAdminCommands;
 use Dockworker\GitHub\GitHubMultipleRepositoryTrait;
 use Dockworker\IO\DockworkerIO;
 use Dockworker\IO\DockworkerIOTrait;
-use Dockworker\StackExchange\StackExchangeTeamClientTrait;
 use Dockworker\Markdown\MarkdownRenderTrait;
+use Dockworker\StackExchange\StackExchangeTeamClientTrait;
 use Dockworker\Twig\TwigTrait;
-
 
 /**
  * Provides methods to write GitHub repo inventory pages to Stack Overflow.
@@ -26,8 +25,13 @@ class DockworkerInventoryPageCommands extends DockworkerAdminCommands
      * Updates the Dockworker site inventory article.
      *
      * @command inventory:sites:update
+     *
+     * @throws \Twig\Error\LoaderError
+     * @throws \Twig\Error\RuntimeError
+     * @throws \Twig\Error\SyntaxError
      */
-    public function updateDockworkerSiteInventoryArticle() {
+    public function updateDockworkerSiteInventoryArticle(): void
+    {
         $this->initInventoryPageCommands();
         $this->checkPreflightChecks($this->dockworkerIO);
         $this->writeInventoryPageFromGithubRepos(
@@ -40,27 +44,38 @@ class DockworkerInventoryPageCommands extends DockworkerAdminCommands
             [],
             [],
             'Write Inventory Pages',
-            true,
-            [],
+            true
         );
     }
 
-  /**
-   * Writes an inventory page from GitHub repositories.
-   *
-   * @param \Dockworker\IO\DockworkerIO $io
-   * @param string $article_id
-   * @param array $organizations
-   * @param array $include_names
-   * @param array $include_topics
-   * @param array $include_callbacks
-   * @param array $omit_names
-   * @param array $omit_topics
-   * @param string $operation_description
-   * @param bool $no_confirm
-   *
-   * @return void
-   */
+    /**
+     * Writes an inventory page from GitHub selectors to a Stack article.
+     *
+     * @param \Dockworker\IO\DockworkerIO $io
+     *   The IO to use for input and output.
+     * @param string $article_id
+     *   The ID of the Stack Overflow article to update.
+     * @param array $organizations
+     *   The GitHub organizations to search for repositories.
+     * @param array $include_names
+     *   The names of repositories to include.
+     * @param array $include_topics
+     *   The topics of repositories to include.
+     * @param array $include_callbacks
+     *   The callbacks to use to determine if a repository should be included.
+     * @param array $omit_names
+     *   The names of repositories to omit.
+     * @param array $omit_topics
+     *   The topics of repositories to omit.
+     * @param string $operation_description
+     *   The description of the operation to perform.
+     * @param bool $no_confirm
+     *   TRUE to skip confirmation steps.
+     *
+     * @throws \Twig\Error\LoaderError
+     * @throws \Twig\Error\RuntimeError
+     * @throws \Twig\Error\SyntaxError
+     */
     protected function writeInventoryPageFromGithubRepos(
         DockworkerIO $io,
         string $article_id,
@@ -71,7 +86,7 @@ class DockworkerInventoryPageCommands extends DockworkerAdminCommands
         array $omit_names = [],
         array $omit_topics = [],
         string $operation_description = 'operation',
-        bool $no_confirm = FALSE
+        bool $no_confirm = false
     ): void {
         $this->setConfirmRepositoryList(
             $io,
@@ -86,65 +101,101 @@ class DockworkerInventoryPageCommands extends DockworkerAdminCommands
         );
         $topic_repos = [];
         foreach ($this->githubRepositories as $repository) {
-          foreach ($repository['topics'] as $topic) {
-            if (!isset($topic_repos[$topic])) {
-              $topic_repos[$topic] = [];
+            foreach ($repository['topics'] as $topic) {
+                if (!isset($topic_repos[$topic])) {
+                    $topic_repos[$topic] = [];
+                }
+                $topic_repos[$topic][] = $repository;
             }
-            $topic_repos[$topic][] = $repository;
-          }
         }
-      $markdown = $this->generateTopicSiteInventoryPage(
-        'Dockworker',
-        'This is a list of all the Dockworker repositories, grouped by tag.',
-        $topic_repos
-      );
-        print_r($markdown);
+        $markdown = $this->generateTopicSiteInventoryPage(
+            'Dockworker',
+            'This is a list of all the Dockworker repositories, grouped by tag.',
+            $topic_repos
+        );
     }
 
-  protected function generateTopicSiteInventoryPage(
-    string $title,
-    string $description,
-    array $repositories
-  ) {
-    $markdown = $this->renderTwig(
-      'inventory-page.md.twig',
-      [__DIR__ . '/../../../../data/twig/inventory'],
-      [
-        'title' => $title,
-        'description' => $description,
-        'site_list' => $this->generateSiteList($repositories),
-      ]
-    );
-    return $markdown;
-  }
-
-  protected function generateSiteList(
-    array $repositories
-  ) {
-     $markdown = '';
-     foreach ($repositories as $repository_tag => $repositories) {
-       $markdown .= "## $repository_tag\n";
-       $markdown .= $this->renderMarkdownList(
-         $repositories
-       );
-       $markdown .= "\n";
-    };
-    return $markdown;
-  }
-
-  protected function renderMarkdownList($repositories) {
-    $markdown = "\n";
-    foreach ($repositories as $repository) {
-      $markdown .= "* [{$repository['name']}]({$repository['html_url']}): {$repository['description']}\n";
+    /**
+     * Generates the Markdown for a topic-organized site inventory page.
+     *
+     * @param string $title
+     *   The title of the page.
+     * @param string $description
+     *   The description of the page.
+     * @param array $repositories
+     *   The repositories to include in the page.
+     *
+     * @return string
+     *   The Markdown for the page.
+     *
+     * @throws \Twig\Error\LoaderError
+     * @throws \Twig\Error\RuntimeError
+     * @throws \Twig\Error\SyntaxError
+     */
+    protected function generateTopicSiteInventoryPage(
+        string $title,
+        string $description,
+        array $repositories
+    ): string {
+        $markdown = $this->renderTwig(
+            'inventory-page.md.twig',
+            [__DIR__ . '/../../../../data/twig/inventory'],
+            [
+            'title' => $title,
+            'description' => $description,
+            'site_list' => $this->generateSiteList($repositories),
+            ]
+        );
+        return $markdown;
     }
-    $markdown .= "\n";
-    return $markdown;
-  }
+
+    /**
+     * Generates a repository lists for a topic site inventory page.
+     *
+     * @param array $repositories
+     *   The repositories to include in the list.
+     *
+     * @return string
+     *   The generated markdown for the lists.
+     */
+    protected function generateSiteList(
+        array $repositories
+    ): string {
+        $markdown = '';
+        foreach ($repositories as $repository_tag => $repository_list) {
+            $markdown .= "## $repository_tag\n";
+            $markdown .= $this->renderMarkdownList(
+                $repository_list
+            );
+            $markdown .= "\n";
+        }
+        return $markdown;
+    }
+
+    /**
+     * Renders a list of repositories as a Markdown list.
+     *
+     * @param $repositories
+     *   The repositories to render.
+     *
+     * @return string
+     *   The rendered Markdown list.
+     */
+    protected function renderMarkdownList($repositories): string
+    {
+        $markdown = "\n";
+        foreach ($repositories as $repository) {
+            $markdown .= "* [{$repository['name']}]({$repository['html_url']}): {$repository['description']}\n";
+        }
+        $markdown .= "\n";
+        return $markdown;
+    }
 
     /**
      * Initializes the inventory page commands.
      */
-    protected function initInventoryPageCommands() {
+    protected function initInventoryPageCommands(): void
+    {
         $this->setStackTeamsClient('unblibsystems');
         $this->initGitHubClientApplicationRepo(
             'unb-libraries',
@@ -152,7 +203,8 @@ class DockworkerInventoryPageCommands extends DockworkerAdminCommands
         );
     }
 
-    protected static function getRepositoryTableHeaders(): array {
+    protected static function getRepositoryTableHeaders(): array
+    {
         return [
             'ID',
             'Name',
@@ -163,7 +215,17 @@ class DockworkerInventoryPageCommands extends DockworkerAdminCommands
         ];
     }
 
-    protected static function getRepositoryTableRows(array $repositories): array {
+    /**
+     * Gets the repository detail rows for a repository list table.
+     *
+     * @param array $repositories
+     *   The repositories to get the details for.
+     *
+     * @return array
+     *   The rows for the repository table.
+     */
+    protected static function getRepositoryTableRows(array $repositories): array
+    {
         $rows = [];
         $row_id = 1;
         foreach ($repositories as $repository) {
@@ -175,14 +237,23 @@ class DockworkerInventoryPageCommands extends DockworkerAdminCommands
         return $rows;
     }
 
-    protected static function getRepositoryTableRow(array $repository): array {
-      return [
-        $repository['name'],
-        $repository['description'],
-        $repository['html_url'],
-        $repository['updated_at'],
-        $repository['pushed_at'],
-      ];
+    /**
+     * Gets a repository detail row for a repository list.
+     *
+     * @param array $repository
+     *   The repository to get the details for.
+     *
+     * @return array
+     *   The row for the list table.
+     */
+    protected static function getRepositoryTableRow(array $repository): array
+    {
+        return [
+            $repository['name'],
+            $repository['description'],
+            $repository['html_url'],
+            $repository['updated_at'],
+            $repository['pushed_at'],
+        ];
     }
-
 }

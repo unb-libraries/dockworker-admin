@@ -2,7 +2,6 @@
 
 namespace Dockworker\GitHub;
 
-use Dockworker\GitHub\GitHubClientTrait;
 use Dockworker\IO\DockworkerIO;
 use Github\ResultPager;
 use Symfony\Component\Console\Helper\Table;
@@ -10,8 +9,8 @@ use Symfony\Component\Console\Helper\Table;
 /**
  * Trait for interacting with multiple instance repositories in GitHub.
  */
-trait GitHubMultipleRepositoryTrait {
-
+trait GitHubMultipleRepositoryTrait
+{
     use GitHubClientTrait;
 
     /**
@@ -24,6 +23,10 @@ trait GitHubMultipleRepositoryTrait {
     /**
      * Determines the list of repositories to operate on and confirms list with user.
      *
+     * @param \Dockworker\IO\DockworkerIO $io
+     *   The IO to use for input and output.
+     * @param array $organizations
+     *     An array of organizations to search for repositories.
      * @param array $include_names
      *     Only repositories whose names contain one of $include_names values will be
      *     returned. Optional.
@@ -55,8 +58,8 @@ trait GitHubMultipleRepositoryTrait {
         array $omit_names = [],
         array $omit_topics = [],
         string $operation_description = 'operation',
-        bool $no_confirm = FALSE,
-    ) : bool {
+        bool $no_confirm = false,
+    ): bool {
         $this->setRepositoryList(
             $io,
             $organizations,
@@ -71,12 +74,11 @@ trait GitHubMultipleRepositoryTrait {
         if (!$no_confirm) {
             $this->listRepositoryNames($io);
             $need_remove = $this->confirm('Would you like to remove any instances?');
-        }
-        else {
-            $need_remove = FALSE;
+        } else {
+            $need_remove = false;
         }
 
-        while ($need_remove == TRUE) {
+        while ($need_remove == true) {
             $to_remove = $this->ask('Which ones? (Specify Name, Comma separated list)');
             if (!empty($to_remove)) {
                 $removes = explode(',', $to_remove);
@@ -92,16 +94,24 @@ trait GitHubMultipleRepositoryTrait {
         }
 
         if (!$no_confirm) {
-            return $this->confirm(sprintf('The %s operation(s) will be applied to ALL of the above repositories. Are you sure you want to continue?', $operation_description));
-        }
-        else {
-            return TRUE;
+            return $this->confirm(
+                sprintf(
+                    'The %s operation(s) will be applied to ALL of the above repositories. Are you sure you want to continue?',
+                    $operation_description
+                )
+            );
+        } else {
+            return true;
         }
     }
 
     /**
      * Gets the list of repositories to operate on from GitHub and filter them.
      *
+     * @param \Dockworker\IO\DockworkerIO $io
+     *   The IO to use for input and output.
+     * @param array $organizations
+     *     An array of organizations to search for repositories.
      * @param array $include_names
      *     Only repositories whose names contain one of $include_names values will be
      *     returned. Optional.
@@ -124,7 +134,7 @@ trait GitHubMultipleRepositoryTrait {
         array $include_callbacks = [],
         array $omit = [],
         array $omit_topics = []
-    ) : void {
+    ): void {
         $io->say('Getting repositories from GitHub API...');
         $this->populateGitHubRepositoryList($organizations);
 
@@ -153,7 +163,6 @@ trait GitHubMultipleRepositoryTrait {
             if (in_array($repository['name'], $omit)) {
                 unset($this->githubRepositories[$repository_index]);
             }
-
         }
 
         // If we have any repositories left, pedantically rekey the array.
@@ -163,7 +172,8 @@ trait GitHubMultipleRepositoryTrait {
     /**
      * Populates the repository list with all organizational repositories.
      */
-    private function populateGitHubRepositoryList(array $organizations) : void {
+    private function populateGitHubRepositoryList(array $organizations): void
+    {
         $paginator = new ResultPager($this->gitHubClient);
         foreach ($organizations as $organization) {
             $organization_api = $this->gitHubClient->api('organization');
@@ -182,6 +192,8 @@ trait GitHubMultipleRepositoryTrait {
     /**
      * Filters the repository list based on results of user-provided callbacks.
      *
+     * @param \Dockworker\IO\DockworkerIO $io
+     *   The IO to use for input and output.
      * @param string[] $include_callbacks
      *     An array of callback names to execute. Callbacks returning FALSE indicate
      *     to remove the item.
@@ -189,7 +201,7 @@ trait GitHubMultipleRepositoryTrait {
     private function filterRepositoriesByCallback(
         DockworkerIO $io,
         array $include_callbacks
-    ) : void {
+    ): void {
         if (!empty($include_callbacks[0])) {
             $io->say('Callback filtering repositories...');
             foreach ($this->githubRepositories as $repository_index => $repository) {
@@ -207,6 +219,8 @@ trait GitHubMultipleRepositoryTrait {
     /**
      * Filters the repository list based on their names.
      *
+     * @param \Dockworker\IO\DockworkerIO $io
+     *   The IO to use for input and output.
      * @param string[] $include_names
      *     An array of keywords to compare against repository names. Repositories
      *     that do not match any keywords will be removed.
@@ -214,7 +228,7 @@ trait GitHubMultipleRepositoryTrait {
     private function filterRepositoriesByName(
         DockworkerIO $io,
         array $include_names
-    ) : void {
+    ): void {
         if (!empty($include_names[0])) {
             $io->say('Name filtering repositories...');
             foreach ($this->githubRepositories as $repository_index => $repository) {
@@ -229,6 +243,8 @@ trait GitHubMultipleRepositoryTrait {
     /**
      * Filters the repository list based on their GitHub topics.
      *
+     * @param \Dockworker\IO\DockworkerIO $io
+     *   The IO to use for input and output.
      * @param string[] $include_topics
      *     An array of keywords to compare against repository topics. Repositories
      *     that do not match any of the topics will be filtered.
@@ -260,19 +276,26 @@ trait GitHubMultipleRepositoryTrait {
      * @return bool
      *     TRUE if the name matches one of the terms. FALSE otherwise.
      */
-    public static function instanceNameMatchesSearchTerms(array $terms, string $name) : bool {
+    public static function instanceNameMatchesSearchTerms(
+        array $terms,
+        string $name
+    ): bool {
         foreach ($terms as $match) {
             if (stristr($name, (string) $match)) {
-                return TRUE;
+                return true;
             }
         }
-        return FALSE;
+        return false;
     }
 
     /**
      * Outputs a formatted list of repositories set to operate on to the console.
+     *
+     * @param \Dockworker\IO\DockworkerIO $io
+     *   The IO to use for input and output.
      */
-    protected function listRepositoryNames(DockworkerIO $io) : void {
+    protected function listRepositoryNames(DockworkerIO $io): void
+    {
         $wrapped_rows = array_map(
             fn($el) => [$el['name']],
             $this->githubRepositories
