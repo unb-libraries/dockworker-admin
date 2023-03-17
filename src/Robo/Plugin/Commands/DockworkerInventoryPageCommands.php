@@ -6,22 +6,22 @@ use Dockworker\DockworkerAdminCommands;
 use Dockworker\GitHub\GitHubMultipleRepositoryTrait;
 use Dockworker\IO\DockworkerIOTrait;
 use Dockworker\Markdown\MarkdownRenderTrait;
-use Dockworker\StackExchange\StackExchangeTeamClientTrait;
+use Dockworker\StackOverflow\StackOverflowTeamsClientTrait;
 use Dockworker\Twig\TwigTrait;
 
 /**
- * Provides methods to write GitHub repository inventory pages to Stack Overflow.
+ * Provides methods to write GitHub repository inventory pages to StackExchange Teams.
  */
 class DockworkerInventoryPageCommands extends DockworkerAdminCommands
 {
     use DockworkerIOTrait;
     use GitHubMultipleRepositoryTrait;
     use MarkdownRenderTrait;
-    use StackExchangeTeamClientTrait;
+    use StackOverflowTeamsClientTrait;
     use TwigTrait;
 
     /**
-     * Updates the Dockworker site inventory article.
+     * Updates the Dockworker site inventory article in StackExchange Teams.
      *
      * @command inventory:sites:update
      *
@@ -34,7 +34,7 @@ class DockworkerInventoryPageCommands extends DockworkerAdminCommands
     {
         $this->initInventoryPageCommands();
         $this->checkPreflightChecks($this->dockworkerIO);
-        $stack_client = $this->stackExchangeTeamClients['unblibsystems'];
+        $stack_client = $this->stackOverflowTeamsClients['unblibsystems'];
 
         $this->dockworkerIO->title('Updating Site Inventory Article');
 
@@ -67,9 +67,12 @@ class DockworkerInventoryPageCommands extends DockworkerAdminCommands
      *
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    protected function initInventoryPageCommands(): void
+    protected function initInventoryPageCommands($team_slug = 'unblibsystems'): void
     {
-        $this->setStackTeamsClient('unblibsystems');
+        $this->setStackTeamsClient($team_slug);
+        $this->setStackTeamsClientPreflightCheck(
+          $this->stackOverflowTeamsClients[$team_slug]
+        );
         $this->initGitHubClientApplicationRepo(
             'unb-libraries',
             'dockworker-admin'
