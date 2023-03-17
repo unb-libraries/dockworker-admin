@@ -57,8 +57,7 @@ class DockworkerInventoryPageCommands extends DockworkerAdminCommands
           '192',
           $this->renderTopicSiteInventoryPageBody(
             'Dockworker',
-            'This is a list of all the Dockworker repositories, grouped by GitHub topic.',
-            $this->getTopicGroupedRepositories()
+            'This is a list of all the Dockworker repositories, grouped by GitHub topic.'
           )
         );
     }
