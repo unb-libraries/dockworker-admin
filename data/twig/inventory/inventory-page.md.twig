@@ -1,5 +1,9 @@
-{% block title %}{% include 'title.md.twig' %}{% endblock %}
+# {{ title }}
+{{ description }}
+{% for topic,repository_list in repositories %}
 
-{% block description %}{% include 'description.md.twig' %}{% endblock %}
-
-{% block sites %}{% include 'sites.md.twig' %}{% endblock %}
+## {{ topic }}
+{% for repository in repository_list %}
+* [{{ repository.name }}]({{ repository.url }}) - {{ repository.description }}
+{% endfor %}
+{% endfor %}
