@@ -75,7 +75,7 @@ class DockworkerInventoryPageCommands extends DockworkerAdminCommands
       foreach ($this->githubRepositories as $repository) {
         foreach ($repository['topics'] as $topic) {
           if (!isset($topic_repos[$topic])) {
-            $topic_repos[$topic] = [];
+              $topic_repos[$topic] = [];
           }
           $topic_repos[$topic][] = $repository;
         }
@@ -85,6 +85,9 @@ class DockworkerInventoryPageCommands extends DockworkerAdminCommands
 
     /**
      * Renders a topic-grouped repository inventory page body.
+     *
+     * @TODO The iteration and output formatting in the called functions should
+     *    be shifted to twig. These functions should be format-agnostic.
      *
      * @param string $title
      *   The title of the page.
