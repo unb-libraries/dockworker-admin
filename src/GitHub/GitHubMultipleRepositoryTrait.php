@@ -89,7 +89,7 @@ trait GitHubMultipleRepositoryTrait
                     }
                 }
             }
-            $this->listRepositoryNames();
+            $this->listRepositoryNames($io);
             $need_remove = $this->confirm('Would you like to remove any more instances?');
         }
 
