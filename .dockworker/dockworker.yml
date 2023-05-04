@@ -10,4 +10,4 @@ dockworker:
       vcs:
         type: github
         owner: unb-libraries
-        name: hit.lib.unb.ca
+        name: dockworker-admin
