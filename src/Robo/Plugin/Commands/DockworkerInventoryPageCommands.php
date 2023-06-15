@@ -54,7 +54,7 @@ class DockworkerInventoryPageCommands extends DockworkerAdminCommands
         $this->dockworkerIO->section('Updating Article');
         $stack_client->updateArticleBody(
             $this->dockworkerIO,
-            '192',
+            192,
             $this->renderTopicSiteInventoryPageBody(
                 'Dockworker Project Repositories',
                 <<< EOT
@@ -71,9 +71,12 @@ EOT
     /**
      * Initializes the inventory page commands.
      *
+     * @param string $team_slug
+     *  The StackExchange Teams slug to use.
+     *
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    protected function initInventoryPageCommands($team_slug = 'unblibsystems'): void
+    protected function initInventoryPageCommands(string $team_slug = 'unblibsystems'): void
     {
         $this->setStackTeamsClient($team_slug);
         $this->setStackTeamsClientPreflightCheck(
@@ -118,7 +121,7 @@ EOT
     /**
      * Constructs an associative array of GitHub repositories grouped by topic.
      *
-     * @return array
+     * @return mixed[]
      *   An array of GitHub repository objects, keyed by topic.
      */
     protected function getTopicGroupedRepositories(): array

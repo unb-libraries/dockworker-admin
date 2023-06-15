@@ -6,8 +6,8 @@ dockworker:
       slug: dockworker-admin
       short_slug: admin
       uuid: 9999
-    workflows:
-      vcs:
-        type: github
-        owner: unb-libraries
-        name: dockworker-admin
+  workflows:
+    vcs:
+      type: github
+      owner: unb-libraries
+      name: dockworker-admin

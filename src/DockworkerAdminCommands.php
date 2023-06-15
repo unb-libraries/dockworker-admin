@@ -7,5 +7,4 @@ namespace Dockworker;
  */
 class DockworkerAdminCommands extends DockworkerCommands
 {
-
 }
