@@ -3,11 +3,10 @@
 namespace Dockworker\Robo\Plugin\Commands;
 
 use Dockworker\DockworkerAdminCommands;
+use Dockworker\Formatter\OutputFormatterTrait;
 use Dockworker\GitHub\GitHubMultipleRepositoryTrait;
 use Dockworker\IO\DockworkerIOTrait;
 use Dockworker\Markdown\MarkdownRenderTrait;
-use Dockworker\StackOverflow\StackOverflowTeamsClientTrait;
-use Dockworker\Twig\TwigTrait;
 
 /**
  * Provides commands to write GitHub repository inventory pages to StackExchange Teams.
@@ -17,8 +16,69 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
     use DockworkerIOTrait;
     use GitHubMultipleRepositoryTrait;
     use MarkdownRenderTrait;
-    use StackOverflowTeamsClientTrait;
-    use TwigTrait;
+    use OutputFormatterTrait;
+
+    /**
+     * Displays a list of GitHub Repositories.
+     *
+     * @option string $formatter
+     *   The output formatter to use. Defaults to plain.
+     * @option string $max-description-length
+     *   The maximum length of the description to display.
+     *
+     * @command inventory:github:repositories
+     */
+    public function listGitHubRepositories(
+        array $options = [
+            'formatter' => 'plain',
+            'max-description-length' => '48',
+        ]
+    ): void
+    {
+        $this->initInventoryCommands();
+        $this->checkPreflightChecks($this->dockworkerIO);
+
+        $formatter = $this->setOutputFormatter($options['formatter']);
+        $this->dockworkerIO->title('Generating GitHub Repository Inventory');
+        $this->dockworkerIO->section('Repository Discovery');
+        $this->setConfirmRepositoryList(
+            $this->dockworkerIO,
+            ['unb-libraries'],
+            [],
+            [],
+            [],
+            [],
+            [],
+            '',
+            true
+        );
+
+        $rows = [];
+        $headers = [
+            'Repository',
+            'Description',
+            'Status',
+            'Comments',
+        ];
+
+        foreach ($this->githubRepositories as $repository) {
+            if (empty($repository['description'])) {
+                $repository['description'] = ' ';
+            }
+            $description = strlen($repository['description']) > $options['max-description-length'] ? substr($repository['description'],0,$options['max-description-length'])."..." : $repository['description'];
+
+            $rows[] = [
+                $formatter->generateLink($repository['html_url'], $repository['name']),
+                $description,
+                ' ',
+                ' ',
+            ];
+        }
+        $this->dockworkerIO->section('Github Repositories');
+        $this->dockworkerIO->write(
+            $formatter->generateTable($headers, $rows)
+        );
+    }
 
     /**
      * Displays a list of repositories.
