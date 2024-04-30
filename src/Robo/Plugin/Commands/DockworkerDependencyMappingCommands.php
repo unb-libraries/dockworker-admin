@@ -25,6 +25,8 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
      *   The output formatter to use. Defaults to plain.
      * @option string $max-description-length
      *   The maximum length of the description to display.
+     * @option string $owner
+     *   The owner of the repositories to list. Defaults to 'unb-libraries'.
      *
      * @command inventory:github:repositories
      */
@@ -32,10 +34,11 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
         array $options = [
             'formatter' => 'plain',
             'max-description-length' => '48',
+            'owner' => 'unb-libraries',
         ]
     ): void
     {
-        $this->initInventoryCommands();
+        $this->initInventoryCommands($options['owner']);
         $this->checkPreflightChecks($this->dockworkerIO);
 
         $formatter = $this->setOutputFormatter($options['formatter']);
@@ -43,7 +46,7 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
         $this->dockworkerIO->section('Repository Discovery');
         $this->setConfirmRepositoryList(
             $this->dockworkerIO,
-            ['unb-libraries'],
+            [$options['owner']],
             [],
             [],
             [],
@@ -81,7 +84,12 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
     }
 
     /**
-     * Displays a list of repositories.
+     * Displays a list of dependencies between a owner's repository.
+     *
+     * @option string $formatter
+     *   The output formatter to use. Defaults to plain.
+     * @option string $owner
+     *   The owner of the repositories to list. Defaults to 'unb-libraries'.
      *
      * @command inventory:dependencies
      *
@@ -90,16 +98,22 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
      * @throws \Twig\Error\RuntimeError
      * @throws \Twig\Error\SyntaxError
      */
-    public function displayDockworkerRepositories(): void
+    public function displayDockworkerDependencies(
+        array $options = [
+            'formatter' => 'plain',
+            'owner' => 'unb-libraries',
+        ]
+    ): void
     {
-        $this->initInventoryCommands();
+        $this->initInventoryCommands($options['owner']);
         $this->checkPreflightChecks($this->dockworkerIO);
 
         $this->dockworkerIO->title('Updating Site Inventory Article');
         $this->dockworkerIO->section('Repository Discovery');
+                $formatter = $this->setOutputFormatter($options['formatter']);
         $this->setConfirmRepositoryList(
             $this->dockworkerIO,
-            ['unb-libraries'],
+            [$options['owner']],
             [],
             [],
             [],
@@ -114,22 +128,21 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
         $images = [];
         $docker_repos = [];
         foreach ($this->githubRepositories as $repository) {
-            print($repository['name'] . "\n");
-            continue;
             try {
+                $this->dockworkerIO->section($repository['name']);
                 $branches = $this->gitHubClient->api('repo')->branches($repository['owner']['login'], $repository['name']);
                 foreach ($branches as $branch) {
                     // If the repository name begins with docker-, strip it.
                     if (strpos($repository['name'], 'docker-') === 0) {
                         $repository['name'] = substr($repository['name'], 7);
                     }
-                    $entity_name = 'ghcr.io/unb-libraries/' . $repository['name'] . ':' . $branch['name'];
-                    $this->dockworkerIO->writeln($branch['name']);
+                    $entity_name = "ghcr.io/{$options['owner']}/" . $repository['name'] . ':' . $branch['name'];
+                    $this->dockworkerIO->writeln("Branch: {$branch['name']}");
                     try {
                         $fileContent = $this->gitHubClient->api('repo')->contents()->download($repository['owner']['login'], $repository['name'], '/Dockerfile', $branch['name']);
                         $dependency_image = $this->extractDependencyImageName($fileContent);
-                        echo "Repository: $entity_name\n";
-                        echo "Dependency Image: $dependency_image\n";
+                        echo "Theoretical Docker Image: $entity_name\n";
+                        echo "Base Image: $dependency_image\n";
                         if (!isset($dependencies[$dependency_image])) {
                             $dependencies[$dependency_image] = [
                             'image' => $dependency_image,
@@ -159,14 +172,19 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
         usort($dependencies, function ($a, $b) {
             return $b['repository_count'] <=> $a['repository_count'];
         });
-        file_put_contents('dependencies.json', json_encode($dependencies, JSON_PRETTY_PRINT));
+        file_put_contents('internal_docker_image_dependencies.json', json_encode($dependencies, JSON_PRETTY_PRINT));
+        $this->dockworkerIO->section('Images Used by Other Images');
         print_r($dependencies);
+
         // Sort the used images alphabetically.
         sort($images);
-        file_put_contents('images.json', json_encode($images, JSON_PRETTY_PRINT));
+        $this->dockworkerIO->section('Images Used by Dockerfiles');
+        file_put_contents('all_dependency_images.json', json_encode($images, JSON_PRETTY_PRINT));
         print_r($images);
+
         // Sort the repositories alphabetically.
         sort($docker_repos);
+        $this->dockworkerIO->section('Repositories with Dockerfiles');
         file_put_contents('docker_repos.json', json_encode($docker_repos, JSON_PRETTY_PRINT));
         print_r($docker_repos);
     }
@@ -195,10 +213,10 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
      *
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    protected function initInventoryCommands(): void
+    protected function initInventoryCommands($owner): void
     {
         $this->initGitHubClientApplicationRepo(
-            'unb-libraries',
+            $owner,
             'dockworker-admin'
         );
     }
