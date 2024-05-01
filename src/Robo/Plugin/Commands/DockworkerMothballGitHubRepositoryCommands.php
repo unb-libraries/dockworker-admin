@@ -67,10 +67,12 @@ class DockworkerMothballGitHubRepositoryCommands extends DockworkerAdminCommands
         $repo = $this->githubRepositories[0];
 
         $this->dockworkerIO->writeln("Mothballing {$repo['full_name']} to local...");
+        $notes = $this->ask("Enter additional notes for mothball metadata. Press ENTER to continue without adding notes.");
         $metadata = [
             'archived_on' => date('Y-m-d H:i:s'),
             'archived_by' => $this->userName,
             'timestamp' => time(),
+            'notes' => $notes,
             'repository' => $repo,
         ];
         $archive_path = $this->archiveGitHubRepository(
@@ -81,10 +83,10 @@ class DockworkerMothballGitHubRepositoryCommands extends DockworkerAdminCommands
         );
 
         $remote_folder = $this->dockworkerIO->ask("Path on $this->mothballHost to mothball the respository to", "$this->mothballPath/GitHub/$repository_name");
-        // Straip the trailing slash
         $remote_folder = rtrim($remote_folder, '/');
         $remote_folder_uri = "$this->mothballHost:$remote_folder";
         
+
         $this->dockworkerIO->writeln("Archiving to $remote_folder_uri...");
         passthru("rsync -avhz $archive_path/ $remote_folder_uri");
 
