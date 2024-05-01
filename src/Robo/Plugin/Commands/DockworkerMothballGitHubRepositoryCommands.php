@@ -26,9 +26,11 @@ class DockworkerMothballGitHubRepositoryCommands extends DockworkerAdminCommands
      *   The repository name to mothball.
      * 
      * @option string $owner
-     *   The owner of the repository to mothball. Defaults to 'unb-libraries'.
+     *   The owner of the repository to mothball.
      * 
      * @command github:repository:mothball
+     * @aliases mothball-repo
+     * @usage hit.lib.unb.ca
      *
      * @throws \GuzzleHttp\Exception\GuzzleException
      * @throws \Twig\Error\LoaderError
