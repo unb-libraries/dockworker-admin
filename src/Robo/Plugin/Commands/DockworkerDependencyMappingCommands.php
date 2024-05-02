@@ -21,6 +21,9 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
     /**
      * Displays a list of GitHub Repositories.
      *
+     * @param mixed[] $options
+     *   The command options.
+     *
      * @option string $formatter
      *   The output formatter to use. Defaults to plain.
      * @option string $max-description-length
@@ -36,8 +39,7 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
             'max-description-length' => '48',
             'owner' => 'unb-libraries',
         ]
-    ): void
-    {
+    ): void {
         $this->initInventoryCommands($options['owner']);
         $this->checkPreflightChecks($this->dockworkerIO);
 
@@ -68,7 +70,9 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
             if (empty($repository['description'])) {
                 $repository['description'] = ' ';
             }
-            $description = strlen($repository['description']) > $options['max-description-length'] ? substr($repository['description'],0,$options['max-description-length'])."..." : $repository['description'];
+            $description = strlen($repository['description']) > $options['max-description-length']
+                ? substr($repository['description'], 0, $options['max-description-length']) . "..."
+                : $repository['description'];
 
             $rows[] = [
                 $formatter->generateLink($repository['html_url'], $repository['name']),
@@ -85,6 +89,9 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
 
     /**
      * Displays a list of dependencies between a owner's repository.
+     *
+     * @param mixed[] $options
+     *   The command options.
      *
      * @option string $formatter
      *   The output formatter to use. Defaults to plain.
@@ -103,14 +110,13 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
             'formatter' => 'plain',
             'owner' => 'unb-libraries',
         ]
-    ): void
-    {
+    ): void {
         $this->initInventoryCommands($options['owner']);
         $this->checkPreflightChecks($this->dockworkerIO);
 
         $this->dockworkerIO->title('Updating Site Inventory Article');
         $this->dockworkerIO->section('Repository Discovery');
-                $formatter = $this->setOutputFormatter($options['formatter']);
+            $formatter = $this->setOutputFormatter($options['formatter']);
         $this->setConfirmRepositoryList(
             $this->dockworkerIO,
             [$options['owner']],
@@ -130,7 +136,12 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
         foreach ($this->githubRepositories as $repository) {
             try {
                 $this->dockworkerIO->section($repository['name']);
-                $branches = $this->gitHubClient->api('repo')->branches($repository['owner']['login'], $repository['name']);
+                $repo_api = $this->gitHubClient->api('repo');
+                /**
+                  * @disregard P1013 Undefined type - API returns mixed based on arg.
+                  * @phpstan-ignore-next-line
+                 */
+                $branches = $repo_api->branches($repository['owner']['login'], $repository['name']);  //
                 foreach ($branches as $branch) {
                     // If the repository name begins with docker-, strip it.
                     if (strpos($repository['name'], 'docker-') === 0) {
@@ -139,7 +150,16 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
                     $entity_name = "ghcr.io/{$options['owner']}/" . $repository['name'] . ':' . $branch['name'];
                     $this->dockworkerIO->writeln("Branch: {$branch['name']}");
                     try {
-                        $fileContent = $this->gitHubClient->api('repo')->contents()->download($repository['owner']['login'], $repository['name'], '/Dockerfile', $branch['name']);
+                        /**
+                          * @disregard P1013 Undefined type - API returns mixed based on arg.
+                          * @phpstan-ignore-next-line
+                         */
+                        $fileContent = $repo_api->contents()->download(
+                            $repository['owner']['login'],
+                            $repository['name'],
+                            '/Dockerfile',
+                            $branch['name']
+                        );
                         $dependency_image = $this->extractDependencyImageName($fileContent);
                         echo "Theoretical Docker Image: $entity_name\n";
                         echo "Base Image: $dependency_image\n";
@@ -211,9 +231,12 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
     /**
      * Initializes the inventory page commands.
      *
+     * @param string $owner
+     *  The owner of the repositories to init with.
+     *
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    protected function initInventoryCommands($owner): void
+    protected function initInventoryCommands(string $owner): void
     {
         $this->initGitHubClientApplicationRepo(
             $owner,

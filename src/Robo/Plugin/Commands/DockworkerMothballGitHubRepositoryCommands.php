@@ -24,10 +24,12 @@ class DockworkerMothballGitHubRepositoryCommands extends DockworkerAdminCommands
      *
      * @param string $repository_name
      *   The repository name to mothball.
-     * 
+     * @param mixed[] $options
+     *   The command options.
+     *
      * @option string $owner
      *   The owner of the repository to mothball.
-     * 
+     *
      * @command github:repository:mothball
      * @aliases mothball-repo
      * @usage hit.lib.unb.ca
@@ -42,8 +44,7 @@ class DockworkerMothballGitHubRepositoryCommands extends DockworkerAdminCommands
         array $options = [
             'owner' => 'unb-libraries',
         ]
-    ): void
-    {
+    ): void {
         $this->initGitHubMothballCommands($this->dockworkerIO, $repository_name, $options['owner']);
         $this->checkPreflightChecks($this->dockworkerIO);
 
@@ -65,11 +66,11 @@ class DockworkerMothballGitHubRepositoryCommands extends DockworkerAdminCommands
             $this->dockworkerIO->error("Repository {$options['owner']}/$repository_name not found.");
             exit(1);
         }
-        $this->dockworkerIO->section('Mothballing Repository');   
+        $this->dockworkerIO->section('Mothballing Repository');
         $repo = $this->githubRepositories[0];
 
         $this->dockworkerIO->writeln("Mothballing {$repo['full_name']} to local...");
-        $notes = $this->ask("Enter additional notes for mothball metadata. Press ENTER to continue without adding notes.");
+        $notes = $this->ask("Enter additional notes for mothball metadata. Press ENTER to continue withoutout notes.");
         $metadata = [
             'archived_on' => date('Y-m-d H:i:s'),
             'archived_by' => $this->userName,
@@ -84,22 +85,25 @@ class DockworkerMothballGitHubRepositoryCommands extends DockworkerAdminCommands
             $metadata
         );
 
-        $remote_folder = $this->dockworkerIO->ask("Path on $this->mothballHost to mothball the respository to", "$this->mothballPath/GitHub/$repository_name");
+        $remote_folder = $this->dockworkerIO->ask(
+            "Path on $this->mothballHost to mothball the respository to",
+            "$this->mothballPath/GitHub/$repository_name"
+        );
         $remote_folder = rtrim($remote_folder, '/');
         $remote_folder_uri = "$this->mothballHost:$remote_folder";
-        
-
         $this->dockworkerIO->writeln("Archiving to $remote_folder_uri...");
         passthru("rsync -avhz $archive_path/ $remote_folder_uri");
 
         $this->dockworkerIO->section('Mothball Complete!');
-        $this->dockworkerIO->block("The process is complete! The mothball should now be available at $remote_folder_uri.");
-        $this->dockworkerIO->say("Please verify the archive is complete, then you may Archive/Delete the GitHub repository via the web interface.");
+        $this->dockworkerIO->block("The mothball should now be available at $remote_folder_uri.");
+        $this->dockworkerIO->say("Please verify the archive and Archive/Delete the GitHub repository.");
     }
 
     /**
      * Initializes the mothball commands.
      *
+     * @param \Dockworker\IO\DockworkerIO $io
+     *   The IO to use for input and output.
      * @param string $repository_name
      *   The repository name to mothball.
      * @param string $repository_owner
@@ -107,8 +111,11 @@ class DockworkerMothballGitHubRepositoryCommands extends DockworkerAdminCommands
      *
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    protected function initGitHubMothballCommands(DockworkerIO $io, string $repository_name, string $repository_owner): void
-    {
+    protected function initGitHubMothballCommands(
+        DockworkerIO $io,
+        string $repository_name,
+        string $repository_owner
+    ): void {
         $this->initMothballConfig();
         $this->initGitHubClientApplicationRepo(
             $repository_owner,
