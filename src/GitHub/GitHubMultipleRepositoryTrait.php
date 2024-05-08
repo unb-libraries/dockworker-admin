@@ -16,7 +16,7 @@ trait GitHubMultipleRepositoryTrait
     /**
      * The repositories to operate on.
      *
-     * @var array
+     * @var mixed[]
      */
     protected array $githubRepositories = [];
 

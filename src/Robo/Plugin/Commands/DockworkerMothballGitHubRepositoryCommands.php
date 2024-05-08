@@ -82,7 +82,9 @@ class DockworkerMothballGitHubRepositoryCommands extends DockworkerAdminCommands
             $options['owner'],
             $repository_name,
             $repo['default_branch'],
-            $metadata
+            $metadata,
+            '',
+            true
         );
 
         $remote_folder = $this->dockworkerIO->ask(
