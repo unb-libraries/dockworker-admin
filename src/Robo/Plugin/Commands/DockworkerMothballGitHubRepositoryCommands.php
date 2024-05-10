@@ -97,8 +97,16 @@ class DockworkerMothballGitHubRepositoryCommands extends DockworkerAdminCommands
         passthru("rsync -avhz $archive_path/ $remote_folder_uri");
 
         $this->dockworkerIO->section('Mothball Complete!');
-        $this->dockworkerIO->block("The mothball should now be available at $remote_folder_uri.");
-        $this->dockworkerIO->say("Please verify the archive and Archive/Delete the GitHub repository.");
+        $this->dockworkerIO->block('The mothball should now be available at:');
+        $this->dockworkerIO->block($remote_folder_uri);
+        $this->dockworkerIO->block('Please verify this. Then, to delete the repository from GitHub, visit:');
+        $this->dockworkerIO->block(
+            sprintf(
+                "https://github.com/%s/%s/settings",
+                $options['owner'],
+                $repository_name
+            )
+        );
     }
 
     /**
