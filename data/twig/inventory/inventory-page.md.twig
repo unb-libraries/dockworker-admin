@@ -4,6 +4,6 @@
 
 ## {{ topic }}
 {% for repository in repository_list %}
-* [{{ repository.name }}]({{ repository.url }}) - {{ repository.description }}
+* [{{ repository.name }}]({{ repository.html_url }}) - {{ repository.description }}
 {% endfor %}
 {% endfor %}
