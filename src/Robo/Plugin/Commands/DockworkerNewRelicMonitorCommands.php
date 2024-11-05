@@ -35,6 +35,13 @@ class DockworkerNewRelicMonitorCommands extends DockworkerAdminCommands
      *   The domain name to monitor.
      * @param string $text_to_match
      *   The text to match on the domain.
+     * @param mixed[] $options
+     *   The command options.
+     *
+     * @option bool $no-error-on-redirect
+     *   Do not error on redirect. Default is to error.
+     * @option bool $no-error-on-ssl
+     *   Do not error on SSL validation. Default is to error.
      *
      * @command newrelic:monitor:create
      * @aliases nr-monitor-create
@@ -48,6 +55,10 @@ class DockworkerNewRelicMonitorCommands extends DockworkerAdminCommands
     public function createNewRelicMonitor(
         string $domain_name,
         string $text_to_match,
+        array $options = [
+          'no-error-on-redirect' => false,
+          'no-ssl-validation' => false,
+        ]
     ): void {
         $this->initNewRelicMonitorCommands($this->dockworkerIO);
         $this->checkPreflightChecks($this->dockworkerIO);
@@ -69,7 +80,9 @@ class DockworkerNewRelicMonitorCommands extends DockworkerAdminCommands
         $this->createNewRelicPingMonitor(
             $domain_name,
             $text_to_match,
-            self::NEWRELIC_ACCOUNT_ID
+            self::NEWRELIC_ACCOUNT_ID,
+            !$options['no-error-on-redirect'],
+            !$options['no-ssl-validation']
         );
 
         // Wait for the monitor to be created.
@@ -198,13 +211,21 @@ GRAPHQL;
      *   The text to match on the domain.
      * @param string $owner
      *   The owner of the monitor.
+     * @param bool $redirect_is_error
+     *   Whether to error on redirect.
+     * @param bool $ssl_invalid_is_error
+     *   Whether to error on SSL validation failure.
      */
     protected function createNewRelicPingMonitor(
         string $domain_name,
         string $text_to_match,
-        string $owner
+        string $owner,
+        bool $redirect_is_error = true,
+        bool $ssl_invalid_is_error = true,
     ): void {
         $monitor_name = $this->getMonitorName($domain_name);
+        $redirect_value = $redirect_is_error ? 'true' : 'false';
+        $ssl_value = $ssl_invalid_is_error ? 'true' : 'false';
         $query = <<<GRAPHQL
 mutation {
     syntheticsCreateSimpleMonitor (
@@ -218,10 +239,10 @@ mutation {
         status: ENABLED,
         uri: "https://$domain_name",
         advancedOptions: {
-          redirectIsFailure: true,
+          redirectIsFailure: $redirect_value,
           responseValidationText: "$text_to_match",
           shouldBypassHeadRequest: false,
-          useTlsValidation: true
+          useTlsValidation: $ssl_value
         },
         apdexTarget: 7.0
       }
