@@ -117,7 +117,7 @@ mutation {
       enabled: true
       name: "$alert_condition_name"
       description: null
-      titleTemplate: "{{conditionName}} has triggered an incident"
+      titleTemplate: "{{conditionName}}"
       nrql: {
         query: "SELECT filter(count(*), WHERE result = 'FAILED') AS 'Failures' FROM SyntheticCheck WHERE entityGuid IN ('$monitor_guid') AND NOT isMuted"
       }
