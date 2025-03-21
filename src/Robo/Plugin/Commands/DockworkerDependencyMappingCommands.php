@@ -25,11 +25,13 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
      *   The command options.
      *
      * @option string $formatter
-     *   The output formatter to use. Defaults to plain.
+     *   The output formatter to use. One of 'plain', 'jira'.
      * @option string $max-description-length
      *   The maximum length of the description to display.
      * @option string $owner
      *   The owner of the repositories to list. Defaults to 'unb-libraries'.
+     * @option string $sort
+     *   The sort order of the repositories. One of 'name', 'updated'.
      *
      * @command inventory:github:repositories
      */
@@ -38,6 +40,7 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
             'formatter' => 'plain',
             'max-description-length' => '48',
             'owner' => 'unb-libraries',
+            'sort' => 'name',
         ]
     ): void {
         $this->initInventoryCommands($options['owner']);
@@ -62,9 +65,21 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
         $headers = [
             'Repository',
             'Description',
+            'Last Updated',
             'Status',
             'Comments',
         ];
+
+        // Sort the repositories.
+        if ($options['sort'] === 'name') {
+            usort($this->githubRepositories, function ($a, $b) {
+                return strcasecmp($a['name'], $b['name']);
+            });
+        } elseif ($options['sort'] === 'updated') {
+            usort($this->githubRepositories, function ($a, $b) {
+                return strtotime($b['updated_at']) <=> strtotime($a['updated_at']);
+            });
+        }
 
         foreach ($this->githubRepositories as $repository) {
             if (empty($repository['description'])) {
@@ -77,6 +92,7 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
             $rows[] = [
                 $formatter->generateLink($repository['html_url'], $repository['name']),
                 $description,
+                $repository['updated_at'],
                 ' ',
                 ' ',
             ];
