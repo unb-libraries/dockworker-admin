@@ -94,7 +94,7 @@ trait GitHubMultipleRepositoryTrait
         }
 
         if (!$no_confirm) {
-            return $this->confirm(
+            return (bool) $this->confirm(
                 sprintf(
                     'The %s operation(s) will be applied to ALL of the above repositories. Do you want to continue?',
                     $operation_description
