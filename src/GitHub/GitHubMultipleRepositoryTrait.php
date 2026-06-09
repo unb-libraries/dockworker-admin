@@ -25,20 +25,20 @@ trait GitHubMultipleRepositoryTrait
      *
      * @param \Dockworker\IO\DockworkerIO $io
      *   The IO to use for input and output.
-     * @param array $organizations
+     * @param string[] $organizations
      *     An array of organizations to search for repositories.
-     * @param array $include_names
+     * @param string[] $include_names
      *     Only repositories whose names contain one of $include_names values will be
      *     returned. Optional.
-     * @param array $include_topics
+     * @param string[] $include_topics
      *     Only repositories whose topics contain one of $include_topics values
      *     exactly will be stored. Optional.
-     * @param array $include_callbacks
+     * @param callable[] $include_callbacks
      *     Only repositories whose filter callbacks functions provided here return
      *     TRUE will be stored. Optional.
-     * @param array $omit_names
+     * @param string[] $omit_names
      *     An array of repository names to omit from the list.
-     * @param array $omit_topics
+     * @param string[] $omit_topics
      *     An array of repository topics to omit from the list.
      * @param string $operation_description
      *     The operation string to display in the confirmation message. Defaults to
@@ -110,20 +110,20 @@ trait GitHubMultipleRepositoryTrait
      *
      * @param \Dockworker\IO\DockworkerIO $io
      *   The IO to use for input and output.
-     * @param array $organizations
+     * @param string[] $organizations
      *     An array of organizations to search for repositories.
-     * @param array $include_names
+     * @param string[] $include_names
      *     Only repositories whose names contain one of $include_names values will be
      *     returned. Optional.
-     * @param array $include_topics
+     * @param string[] $include_topics
      *     Only repositories whose topics contain one of $include_topics values
      *     exactly will be stored. Optional.
-     * @param array $include_callbacks
+     * @param callable[] $include_callbacks
      *     Only repositories whose filter callbacks functions provided here return
      *     TRUE will be stored. Optional.
-     * @param array $omit
+     * @param string[] $omit
      *     An array of repository names to omit from the list.
-     * @param array $omit_topics
+     * @param string[] $omit_topics
      *     An array of repository topics to omit from the list.
      */
     private function setRepositoryList(
@@ -171,6 +171,9 @@ trait GitHubMultipleRepositoryTrait
 
     /**
      * Populates the repository list with all organizational repositories.
+     *
+     * @param string[] $organizations
+     *     An array of organizations to search for repositories.
      */
     private function populateGitHubRepositoryList(array $organizations): void
     {
@@ -268,7 +271,7 @@ trait GitHubMultipleRepositoryTrait
     /**
      * Determines if a repository name partially matches multiple terms.
      *
-     * @param array $terms
+     * @param string[] $terms
      *     An array of terms to match in a case-insensitive manner against the name.
      * @param string $name
      *     The name to match against.
