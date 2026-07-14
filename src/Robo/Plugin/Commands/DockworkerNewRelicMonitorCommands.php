@@ -15,11 +15,11 @@ class DockworkerNewRelicMonitorCommands extends DockworkerAdminCommands
     use DockworkerIOTrait;
     use PreFlightCheckTrait;
 
-    const ALERT_CONDITION_NAME = 'Unavailable: %s';
-    const NEWRELIC_ACCOUNT_ID = '1005680';
-    const NEWRELIC_ALERT_POLICY_ID = '5732395';
-    const NEWRELIC_GRAPHQL_ENDPOINT = 'https://api.newrelic.com/graphql';
-    const MONITOR_NAME = 'Availability: %s';
+    public const ALERT_CONDITION_NAME = 'Unavailable: %s';
+    public const NEWRELIC_ACCOUNT_ID = '1005680';
+    public const NEWRELIC_ALERT_POLICY_ID = '5732395';
+    public const NEWRELIC_GRAPHQL_ENDPOINT = 'https://api.newrelic.com/graphql';
+    public const MONITOR_NAME = 'Availability: %s';
 
     /**
      * The GraphQL client.
