@@ -7,6 +7,7 @@ use Dockworker\Formatter\OutputFormatterTrait;
 use Dockworker\GitHub\GitHubMultipleRepositoryTrait;
 use Dockworker\IO\DockworkerIOTrait;
 use Dockworker\Markdown\MarkdownRenderTrait;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Provides commands to write GitHub repository inventory pages to StackExchange Teams.
@@ -158,22 +159,19 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
                   * @phpstan-ignore-next-line
                  */
                 $branches = $repo_api->branches($repository['owner']['login'], $repository['name']);  //
+                // The published image drops any docker- prefix, but the repository
+                // itself keeps it. Never overwrite $repository['name'] with this: it
+                // is the name every subsequent API call needs.
+                $image_repo_name = strpos($repository['name'], 'docker-') === 0
+                    ? substr($repository['name'], 7)
+                    : $repository['name'];
                 foreach ($branches as $branch) {
-                    // If the repository name begins with docker-, strip it.
-                    if (strpos($repository['name'], 'docker-') === 0) {
-                        $repository['name'] = substr($repository['name'], 7);
-                    }
-                    $entity_name = "ghcr.io/{$options['owner']}/" . $repository['name'] . ':' . $branch['name'];
+                    $entity_name = "ghcr.io/{$options['owner']}/" . $image_repo_name . ':' . $branch['name'];
                     $this->dockworkerIO->writeln("Branch: {$branch['name']}");
                     try {
-                        /**
-                          * @disregard P1013 Undefined type - API returns mixed based on arg.
-                          * @phpstan-ignore-next-line
-                         */
-                        $fileContent = $repo_api->contents()->download(
+                        $fileContent = $this->downloadRepositoryDockerfile(
                             $repository['owner']['login'],
                             $repository['name'],
-                            '/Dockerfile',
                             $branch['name']
                         );
                         $dependency_image = $this->extractDependencyImageName($fileContent);
@@ -226,6 +224,49 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
     }
 
     /**
+     * Downloads a repository's Dockerfile, resolving non-root paths if needed.
+     *
+     * Tries the conventional root Dockerfile first, so the common case still
+     * costs a single API call. Only when that is absent is the repository's
+     * build workflow consulted, since it may declare a 'dockerfile' input
+     * pointing somewhere else.
+     *
+     * @param string $owner
+     *   The repository owner.
+     * @param string $name
+     *   The repository name.
+     * @param string $branch
+     *   The branch to read the Dockerfile from.
+     *
+     * @return string
+     *   The contents of the Dockerfile.
+     *
+     * @throws \Exception
+     *   If no Dockerfile could be located on the branch.
+     */
+    protected function downloadRepositoryDockerfile(
+        string $owner,
+        string $name,
+        string $branch
+    ): string {
+        /**
+          * @disregard P1013 Undefined type - API returns mixed based on arg.
+          * @phpstan-ignore-next-line
+         */
+        $contents = $this->gitHubClient->api('repo')->contents();
+        try {
+            return (string) $contents->download($owner, $name, '/Dockerfile', $branch);
+        } catch (\Exception $e) {
+            $path = $this->resolveRepositoryDockerfilePath($owner, $name, $branch);
+            if ($path === '/Dockerfile') {
+                // Nothing else to try; let the caller report it as not found.
+                throw $e;
+            }
+            return (string) $contents->download($owner, $name, $path, $branch);
+        }
+    }
+
+    /**
      * Extracts the image name from a Dockerfile.
      *
      * @param string $fileContent
@@ -258,5 +299,79 @@ class DockworkerDependencyMappingCommands extends DockworkerAdminCommands
             $owner,
             'dockworker-admin'
         );
+    }
+
+    /**
+     * Resolves where a repository's image is built from on a given branch.
+     *
+     * The authoritative location is the 'dockerfile' input passed to the
+     * dockworker build workflow, so any workflow file declaring that input is
+     * treated as the source of truth. Repositories that do not declare it build
+     * the conventional root Dockerfile.
+     *
+     * @param string $owner
+     *   The repository owner.
+     * @param string $name
+     *   The repository name.
+     * @param string $branch
+     *   The branch to read the workflows from.
+     *
+     * @return string
+     *   The Dockerfile path, defaulting to '/Dockerfile'.
+     */
+    protected function resolveRepositoryDockerfilePath(
+        string $owner,
+        string $name,
+        string $branch
+    ): string {
+        $default = '/Dockerfile';
+        /**
+          * @disregard P1013 Undefined type - API returns mixed based on arg.
+          * @phpstan-ignore-next-line
+         */
+        $contents = $this->gitHubClient->api('repo')->contents();
+        try {
+            $workflows = $contents->show($owner, $name, '.github/workflows', $branch);
+        } catch (\Exception $e) {
+            // No workflows directory on this branch.
+            return $default;
+        }
+        if (!is_array($workflows)) {
+            return $default;
+        }
+
+        foreach ($workflows as $workflow) {
+            if (!is_array($workflow) || !isset($workflow['name'], $workflow['path'])) {
+                continue;
+            }
+            if (!preg_match('/\.ya?ml$/', $workflow['name'])) {
+                continue;
+            }
+            try {
+                $parsed = Yaml::parse(
+                    (string) $contents->download($owner, $name, $workflow['path'], $branch)
+                );
+            } catch (\Exception $e) {
+                // Unreadable or malformed workflow; it cannot tell us anything.
+                continue;
+            }
+            if (!is_array($parsed) || !is_array($parsed['jobs'] ?? null)) {
+                continue;
+            }
+            foreach ($parsed['jobs'] as $job) {
+                if (!is_array($job) || empty($job['with']['dockerfile'])) {
+                    continue;
+                }
+                // The workflow input is relative to the repository root, while
+                // the contents API expects a single leading slash.
+                $path = (string) $job['with']['dockerfile'];
+                if (str_starts_with($path, './')) {
+                    $path = substr($path, 2);
+                }
+                return '/' . ltrim($path, '/');
+            }
+        }
+
+        return $default;
     }
 }
